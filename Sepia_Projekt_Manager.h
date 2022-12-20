@@ -7,8 +7,8 @@
 #include <vector>
 #include <thread>
 
-typedef int(_stdcall* ASM_PROC)(unsigned char*, DWORD, DWORD); //imageData,
-typedef int(__cdecl* CPP_FUNC)(DWORD, DWORD);
+typedef int(_stdcall* ASM_PROC)(DWORD, unsigned char*, DWORD, DWORD); //imageData,
+typedef int(__cdecl* CPP_FUNC)(unsigned char*, DWORD, DWORD, DWORD);
 
 class BitmapManager {
 public:
@@ -26,6 +26,8 @@ public:
 
 	//void loadBMP(const char* filename);
 	static Image* loadBMP(const char* filename);
+	RGBApixel** GetTable();
+	void writeImage(const char* filename);
 	BitmapManager(const char* filename);
 	void printImageOnConsole();
 	void printPixels(int amount);

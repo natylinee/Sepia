@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "mydll.h"
 
-int Sepia() {
-	return 20;
+void Sepia (BYTE* input, int kolumny, int skok, int wiersze) {
+	int i = 0;
 }

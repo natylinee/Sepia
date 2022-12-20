@@ -10,12 +10,21 @@ using namespace std;
 typedef unsigned char byte;
 typedef unsigned int int32;
 typedef short int16;
+typedef unsigned char  ebmpBYTE;
+
+typedef struct RGBApixel {
+    ebmpBYTE Blue;
+    ebmpBYTE Green;
+    ebmpBYTE Red;
+    ebmpBYTE Alpha;
+} RGBApixel;
 
 struct Image {
     byte* pixels;
     int32 width;
     int32 height;
     int32 bytesPerPixel;
+    RGBApixel** Pixels;
 
     ~Image() {
         free(pixels);
