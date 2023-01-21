@@ -1,9 +1,8 @@
-﻿#define _CRT_SECURE_NO_WARNINGS
-#include <windows.h> 
+﻿#include <windows.h> 
 #include <stdio.h> 
 #include <iostream>
 #include <thread>
-#include "Sepia_Params.h"
+//#include "Sepia_Params.h"
 #include "Sepia_Projekt_Manager.h"
 
 using namespace std;
@@ -16,8 +15,10 @@ int main()
     MyManager.runSepia(1, true);
     auto finish = chrono::high_resolution_clock::now();
     chrono::duration<double> durationBig = finish - start;
-    
-    MyManager.loadBMP("bmp_maly.bmp");
+    MyManager.writeImage("nogiSEPIA.bmp");
+    cout << "Loading big size image took: " << durationBig.count() << " s" << endl;
+
+    /*MyManager.loadBMP("bmp_maly.bmp");
     start = chrono::high_resolution_clock::now();
     MyManager.runSepia(1, true);
     finish = chrono::high_resolution_clock::now();
@@ -25,7 +26,7 @@ int main()
 
     cout << "Loading big size image took: " << durationBig.count() << " s" << endl;
     cout << "Loading small size image took: " << durationSmall.count() << " s" << endl;
-
+    */
    // cout << endl;
    // MyManager.printPixels(12);
     //MyManager.runSepia(1, true);

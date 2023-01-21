@@ -1,4 +1,11 @@
 #include "Sepia_Projekt_Manager.h"
+#include"EasyBMP.h"
+//#include"EasyBMP_VariousBMPutilities.h"
+#include"EasyBMP.cpp"
+#include"EasyBMP_BMP.h"
+#include"EasyBMP_DataStructures.h"
+//#include "Sepia_Params.h"
+#define _CRT_SECURE_NO_WARNINGS
 
 using namespace std;
 #define DATA_OFFSET_OFFSET 0x000A
@@ -11,40 +18,20 @@ using namespace std;
 #define MAX_NUMBER_OF_COLORS 0
 #define ALL_COLORS_REQUIRED 0
 
-Image* BitmapManager::loadBMP(const char* filename)
+
+
+BMP* BitmapManager::loadBMP(const char* filename)
 {
-
-            Image* image = new Image();
-
-            FILE* imageFile = fopen(filename, "rb");
-            int32 dataOffset;
-            fseek(imageFile, DATA_OFFSET_OFFSET, SEEK_SET);
-            fread(&dataOffset, 4, 1, imageFile);
-            fseek(imageFile, WIDTH_OFFSET, SEEK_SET);
-            fread(&image->width, 4, 1, imageFile);
-            fseek(imageFile, HEIGHT_OFFSET, SEEK_SET);
-            fread(&image->height, 4, 1, imageFile);
-            int16 bitsPerPixel;
-            fseek(imageFile, BITS_PER_PIXEL_OFFSET, SEEK_SET);
-            fread(&bitsPerPixel, 2, 1, imageFile);
-            image->bytesPerPixel = ((int32)bitsPerPixel) / 8;
-
-            int paddedRowSize = (int)(4 * ceil((float)(image->width) / 4.0f)) * (image->bytesPerPixel);
-            int unpaddedRowSize = (image->width) * (image->bytesPerPixel);
-            int totalSize = unpaddedRowSize * (image->height);
-            image->pixels = (byte*)malloc(totalSize);
-            int i = 0;
-            byte* currentRowPointer = image->pixels + ((image->height - 1) * unpaddedRowSize);
-            for (i = 0; i < image->height; i++)
-            {
-                fseek(imageFile, dataOffset + (i * paddedRowSize), SEEK_SET);
-                fread(currentRowPointer, 1, unpaddedRowSize, imageFile);
-                currentRowPointer -= unpaddedRowSize;
-            }
             
-            fclose(imageFile);
+            BMP* image = new BMP();
+            image->ReadFromFile(filename);
             return image;
   
+}
+
+void BitmapManager::writeImage(const char* fileName)
+{
+    image->WriteToFile("sepia.bmp");// zapis zmienionego obrazu do pliku ustalonego z góry
 }
 
 BitmapManager::BitmapManager(const char* filename)
@@ -70,72 +57,42 @@ BitmapManager::BitmapManager(const char* filename)
 
 }
 
-void BitmapManager::printImageOnConsole()
-{
-    auto start = chrono::high_resolution_clock::now();
 
-    //Wypisz ca³y obraz
-    for (int i = 0; i < image->height * image->width; i += 3)
-    {
-        // caly pixel
-        cout << (int)image->pixels[i]; //b
-        cout << " ";
-        cout << (int)image->pixels[i + 1];  //g
-        cout << " ";
-        cout << (int)image->pixels[i + 2];  //r 
-        cout << endl;
-    }
-
-    auto finish = chrono::high_resolution_clock::now();
-
-    chrono::duration<double> duration = finish - start;
-
-    //Wypisz w konsoli czas wyœwietlania obrazu
-    cout << endl;
-    cout << "Displaying image on the screen took " << duration.count() << " seconds." << endl;
-    cout << endl;
-}
-
-void BitmapManager::printPixels(int amount)
-{
-    for (int i = 0; i <amount; i += 3)
-    {
-        // caly pixel
-        cout << (int)image->pixels[i]; //b
-        cout << " ";
-        cout << (int)image->pixels[i + 1];  //g
-        cout << " ";
-        cout << (int)image->pixels[i + 2];  //r 
-        cout << endl;
-    }
-}
 
 void BitmapManager::runSepia(int threadsNumber, bool useASM)
 {
-    vector<thread> threads;
-//    auto bytesPerRow = this->infoHeader.biSizeImage / this->infoHeader.biHeight; 
-//
-    int step = (image->width * image->height) / 3 / threadsNumber; //krok do watku
-    int bytesPerRow;
-    unsigned char* a;
+    
+    if (threadsNumber > image->TellWidth())  // za du¿a liczba w¹tków w porównaniu do wielkoœci obrazu
+        bool error = true; // return -1;
+    int range = image->TellWidth() / threadsNumber;// w zakresie znajduje siê liczba wierszy któr¹ przyjmuje dany w¹tek
+    if (image->TellWidth() % threadsNumber)
+        range += 1;//dodanie wiersza do ka¿dego w¹tku, gdy dzielene z reszt¹- w ostanim w¹tku bêdzie o jeden mniej wiersz
+
+    int rows = image->TellHeight();
     //W zale¿noœci od wyboru u¿yj odpowiedniego uchwytu procedury
     if (useASM == true) {
         if (handleToAsmSepia == NULL) { // Jeœli nie uda³o siê za³adowaæ procedury
            cout << "Error: Have not found the proper function." << endl;
         }
         else {
-            for (int i = 0; i < threadsNumber; i++) //Utwórz tyle w¹tków, ile zosta³o podane
-            {
-                //thread t(this->handleToAsmSepia, image->pixels, image->pixels[i * step * 3], image->pixels[(i + 1) * step * 3]);
-
-                threads.push_back(thread(this->handleToAsmSepia, image->pixels, image->pixels[i * step * 3], image->pixels[(i + 1) * step * 3]));
+            int counter = 1;
+            std::vector<std::thread> threads;
+            for (int i = 0; i < image->TellWidth(); i+=range) //Utwórz tyle w¹tków, ile zosta³o podane
+            {   
+                int progress = range * counter; //indeks koñcowej kolumny
+                if (progress >= image->TellWidth())
+                    threads.push_back(std::thread(handleToAsmSepia, rows, image->GetTable(), i, image->TellWidth()));
+                else
+                    threads.push_back(std::thread(handleToAsmSepia, rows, image->GetTable(), i, progress));
+                counter++;
             }
-                // start index image->pixels[i*step*3]
-                //end index image.pixels[(i+1)*step*3]
-                // if i=threads-1 to endindex=  (image->width * image->height)
+             
                 
-            for (auto& t : threads) //Zaczekaj, a¿ wszystkie w¹tki zakoñcz¹ pracê
+            for (auto& t : threads) 
+            {//Zaczekaj, a¿ wszystkie w¹tki zakoñcz¹ pracê
                 t.join();
+            }
+            //koniec liczenia czasu tu dac
             
         }
     }
@@ -144,16 +101,28 @@ void BitmapManager::runSepia(int threadsNumber, bool useASM)
             cout << "Error: Have not found the proper function." << endl;
         }
         else {
-            for (int i = 0; i < threadsNumber; i++)
-                threads.push_back(thread([this](int elem1, int elem2) {
-                cout << this->handleToCPPSepia(elem1, elem2) << " ";
-                    }, 3, 5));
-            for (auto& t : threads)
-                t.join();
-            
-        }
-    }
+            int counter = 1;
+            std::vector<std::thread> threads;
+            for (int i = 0; i < image->TellWidth(); i += range)
+            {
+                int progress = range * counter;
 
+                if (progress >= image->TellWidth())
+                    threads.push_back(std::thread(handleToCPPSepia, image->GetTable(), i, image->TellWidth(), image->TellHeight()));
+                else
+                    threads.push_back(std::thread(handleToCPPSepia, image->GetTable(), i, progress, image->TellHeight()));
+                counter++;
+            }
+            for (auto& t : threads)
+            {
+                t.join();
+            }
+            //koniec czasu
+        }
+        //writeImage("sepia.bmp");
+    }
+  
+    // zapis zmienionego obrazu do pliku ustalonego z góry
 }
 
 BitmapManager::~BitmapManager()
@@ -162,4 +131,5 @@ BitmapManager::~BitmapManager()
     FreeLibrary(this->hinstLibAsm);
     FreeLibrary(this->hinstLibCPP);
     delete[] this->imageData;
+   // delete[] this->sepiaImageData;
 }

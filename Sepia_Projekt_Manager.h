@@ -1,14 +1,18 @@
 #ifndef BITMAPMANAGER_H
 #define BITMAPMANAGER_H
-
-#include "Sepia_Params.h"
+//#include "Sepia_Params.h"
 #include <chrono>
 #include <iomanip>
 #include <vector>
 #include <thread>
+#include<windows.h>
+#include"EasyBMP.h"
 
-typedef int(_stdcall* ASM_PROC)(unsigned char*, DWORD, DWORD); //imageData,
-typedef int(__cdecl* CPP_FUNC)(DWORD, DWORD);
+//typedef int(_stdcall* ASM_PROC)(DWORD, unsigned char*, DWORD, DWORD); //imageData,
+typedef int(__cdecl* ASM_PROC)(int width, RGBApixel** image, int, int); //(imageData, bytesPerRow, linesToProcess)
+
+//typedef int(__cdecl* CPP_FUNC)(unsigned char*, DWORD, DWORD, DWORD);
+typedef int(__cdecl* CPP_FUNC)(RGBApixel** image, int, int, int width);
 
 class BitmapManager {
 public:
@@ -22,10 +26,11 @@ public:
 	CPP_FUNC handleToCPPSepia; //typ wskaznika na funkcje z argumentami wyzej
 	ASM_PROC handleToAsmSepia;
 
-	Image* image;
+	BMP* image;
 
 	//void loadBMP(const char* filename);
-	static Image* loadBMP(const char* filename);
+	static BMP* loadBMP(const char* filename);
+	void writeImage(const char* filename);
 	BitmapManager(const char* filename);
 	void printImageOnConsole();
 	void printPixels(int amount);
